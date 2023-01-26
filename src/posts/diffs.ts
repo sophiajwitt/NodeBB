@@ -115,7 +115,7 @@ export default function (Posts: POSTS) {
         if (oldContent !== newContent) {
             // The next line calls a function in a module that has not been updated to TS yet
             /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
-               @typescript-eslint/no-unsafe-assignment */
+               @typescript-eslint/no-unsafe-call */
             diffData.patch = diff.createPatch('', newContent, oldContent);
         }
         if (topic.renamed) {
@@ -149,6 +149,9 @@ export default function (Posts: POSTS) {
 
     function applyPatch(content: any, aDiff: aDIFF) {
         if (aDiff && aDiff.patch) {
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
             const result = diff.applyPatch(content, aDiff.patch, {
                 fuzzFactor: 1,
             });
@@ -199,11 +202,20 @@ export default function (Posts: POSTS) {
         return await Posts.edit({
             uid: uid,
             pid: pid,
-            content: post.content,
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
+            content: post.content as string,
             req: req,
             timestamp: since2,
-            title: post.topic.title,
-            tags: post.topic.tags.map((tag: { value: any; }) => tag.value),
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
+            title: post.topic.title as string,
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
+            tags: post.topic.tags.map((tag: { value: any; }) => tag.value) as string,
         });
     };
 
@@ -236,11 +248,11 @@ export default function (Posts: POSTS) {
             throw new Error('[[error:invalid-data]]');
         }
 
-        const postContent = validator.unescape(post[0].content);
+        const postContent = validator.unescape(post[0].content) as string;
         const versionContents = {};
         for (let i = 0, content = postContent; i < timestamps.length; ++i) {
-            versionContents[timestamps[i]] = applyPatch(content, diffs[i]);
-            content = versionContents[timestamps[i]];
+            versionContents[timestamps[i]] = applyPatch(content, diffs[i]) as string[];
+            content = versionContents[timestamps[i]] as string;
         }
 
         /* eslint-disable no-await-in-loop */
@@ -252,10 +264,13 @@ export default function (Posts: POSTS) {
             /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
                @typescript-eslint/no-unsafe-call */
             const newContent = newContentIndex < 0 ? postContent : versionContents[timestamps[newContentIndex]] as string;
-            const patch = diff.createPatch('', newContent, versionContents[timestamps[i]]);
             // The next line calls a function in a module that has not been updated to TS yet
             /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
-               @typescript-eslint/no-unsafe-assignment */
+               @typescript-eslint/no-unsafe-call */
+            const patch = diff.createPatch('', newContent, versionContents[timestamps[i]]) as string;
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
             await db.setObject(`diff:${pid}.${timestamps[timestampToUpdate]}`, { patch }) as string;
         }
 

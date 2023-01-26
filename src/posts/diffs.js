@@ -67,7 +67,7 @@ function default_1(Posts) {
             if (oldContent !== newContent) {
                 // The next line calls a function in a module that has not been updated to TS yet
                 /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
-                   @typescript-eslint/no-unsafe-assignment */
+                   @typescript-eslint/no-unsafe-call */
                 diffData.patch = diff_1.default.createPatch('', newContent, oldContent);
             }
             if (topic.renamed) {
@@ -97,6 +97,9 @@ function default_1(Posts) {
     }
     function applyPatch(content, aDiff) {
         if (aDiff && aDiff.patch) {
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
             const result = diff_1.default.applyPatch(content, aDiff.patch, {
                 fuzzFactor: 1,
             });
@@ -142,10 +145,19 @@ function default_1(Posts) {
             return yield Posts.edit({
                 uid: uid,
                 pid: pid,
+                // The next line calls a function in a module that has not been updated to TS yet
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-call */
                 content: post.content,
                 req: req,
                 timestamp: since2,
+                // The next line calls a function in a module that has not been updated to TS yet
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-call */
                 title: post.topic.title,
+                // The next line calls a function in a module that has not been updated to TS yet
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-call */
                 tags: post.topic.tags.map((tag) => tag.value),
             });
         });
@@ -191,10 +203,13 @@ function default_1(Posts) {
                 /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
                    @typescript-eslint/no-unsafe-call */
                 const newContent = newContentIndex < 0 ? postContent : versionContents[timestamps[newContentIndex]];
+                // The next line calls a function in a module that has not been updated to TS yet
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-call */
                 const patch = diff_1.default.createPatch('', newContent, versionContents[timestamps[i]]);
                 // The next line calls a function in a module that has not been updated to TS yet
                 /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
-                   @typescript-eslint/no-unsafe-assignment */
+                   @typescript-eslint/no-unsafe-call */
                 yield database_1.default.setObject(`diff:${pid}.${timestamps[timestampToUpdate]}`, { patch });
             }
             return Promise.all([
