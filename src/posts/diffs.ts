@@ -8,14 +8,35 @@ import plugins from '../plugins';
 import translator from '../translator';
 import topics from '../topics';
 
-interface DIFFS{
+type applyfunction = (content: any, aDiff: string) => string;
+
+
+interface D {
+    hasOwnProperty: boolean;
+}
+
+interface DIFFS {
     exists: (pid: string) => Promise<boolean>;
-    get: (pid: string) => Promise<string>;
+    get: ((pid: string, since?: string | number) => Promise<string[]>) | ((pid: string) => Promise<string>);
     list: (pid: string) => Promise<string[]>;
     save: (data: DATA) => Promise<void>;
-    load: (pid: string, since: number, uid: string) => Promise<string>;
-    restore: (pid: string, since: number,  uid: string,  req: string) => Promise<string>;
+    load: (pid: string, since: string, uid: string) => Promise<string>;
+    restore: (pid: string, since: string,  uid: string,  req: string) => Promise<void>;
     delete: (pid: string, timestamp: string, uid: string) => Promise<string[]>;
+    reduce: (applyPatch: applyfunction, validator: VALIDATOR) => Promise<number>;
+    filter: (d: boolean) => Promise<titleDIFFS>;
+}
+
+interface titleDIFFS {
+    length: number;
+}
+
+interface tagDIFFS {
+    length: number;
+}
+
+interface VALIDATOR {
+    unescape: (number) => Promise<number>;
 }
 
 interface DATA {
@@ -28,14 +49,11 @@ interface DATA {
 }
 
 interface diffDATA {
-    patch: PATCH;
-    title: string;
-    tags: string;
-}
-
-interface PATCH {
     uid: string;
     pid: string;
+    patch?: string;
+    title?: string;
+    tags?: string;
 }
 
 interface TOPIC {
@@ -45,7 +63,19 @@ interface TOPIC {
     oldTitle: string;
 }
 
-export default function (Posts) {
+interface aDIFF {
+    patch?: number;
+}
+
+interface POSTS {
+    diffs: DIFFS;
+    getPostSummaryByPids (pid: string[], uid: string, parse: object); 
+    edit (o: object);
+}
+
+
+
+export default function (Posts: POSTS) {
     const Diffs = {} as DIFFS;
     Posts.diffs = Diffs;
     Diffs.exists = async function (pid) {
@@ -67,24 +97,28 @@ export default function (Posts) {
         // Pass those made after `since`, and create keys
         const keys = timestamps.filter(t => (parseInt(t, 10) || 0) > since)
             .map(t => `diff:${pid}.${t}`);
-        return await db.getObjects(keys);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        return await db.getObjects(keys) as string[];
     };
 
     Diffs.list = async function (pid) {
-        return await db.getListRange(`post:${pid}:diffs`, 0, -1);
+        // The next line calls a function in a module that has not been updated to TS yet
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        return await db.getListRange(`post:${pid}:diffs`, 0, -1) as string[];
     };
 
     Diffs.save = async function (data) {
         const { pid, uid, oldContent, newContent, edited, topic } = data;
         const editTimestamp = edited || Date.now();
-        const diffData = {
+        const diffData : diffDATA = {
             uid: uid,
             pid: pid,
         };
         if (oldContent !== newContent) {
             // The next line calls a function in a module that has not been updated to TS yet
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-            diffData.patch = diff.createPatch('', newContent, oldContent) as PATCH;
+            diffData.patch = diff.createPatch('', newContent, oldContent);
         }
         if (topic.renamed) {
             diffData.title = topic.oldTitle;
@@ -93,7 +127,11 @@ export default function (Posts) {
             diffData.tags = topic.oldTags.map(tag => tag && tag.value).filter(Boolean).join(',');
         }
         await Promise.all([
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             db.listPrepend(`post:${pid}:diffs`, editTimestamp),
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             db.setObject(`diff:${pid}.${editTimestamp}`, diffData),
         ]);
     };
@@ -109,7 +147,7 @@ export default function (Posts) {
     };
 
     Diffs.restore = async function (pid, since, uid, req) {
-        since = getValidatedTimestamp(since);
+        const since2 = getValidatedTimestamp(since);
         const post = await postDiffLoad(pid, since, uid);
 
         return await Posts.edit({
@@ -117,9 +155,9 @@ export default function (Posts) {
             pid: pid,
             content: post.content,
             req: req,
-            timestamp: since,
+            timestamp: since2,
             title: post.topic.title,
-            tags: post.topic.tags.map(tag => tag.value),
+            tags: post.topic.tags.map((tag: { value: any; }) => tag.value),
         });
     };
 
@@ -138,7 +176,11 @@ export default function (Posts) {
         if (timestamp === String(post[0].timestamp)) {
             // Deleting oldest diff, so history rewrite is not needed
             return Promise.all([
+                // The next line calls a function in a module that has not been updated to TS yet
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
                 db.delete(`diff:${pid}.${timestamps[lastTimestampIndex]}`),
+                // The next line calls a function in a module that has not been updated to TS yet
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
                 db.listRemoveAll(`post:${pid}:diffs`, timestamps[lastTimestampIndex]),
             ]);
         }
@@ -160,16 +202,22 @@ export default function (Posts) {
             const timestampToUpdate = newContentIndex + 1;
             const newContent = newContentIndex < 0 ? postContent : versionContents[timestamps[newContentIndex]];
             const patch = diff.createPatch('', newContent, versionContents[timestamps[i]]);
-            await db.setObject(`diff:${pid}.${timestamps[timestampToUpdate]}`, { patch });
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call   
+            await db.setObject(`diff:${pid}.${timestamps[timestampToUpdate]}`, { patch }) as string;
         }
 
         return Promise.all([
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             db.delete(`diff:${pid}.${timestamp}`),
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             db.listRemoveAll(`post:${pid}:diffs`, timestamp),
         ]);
     };
 
-    async function postDiffLoad(pid, since, uid) {
+    async function postDiffLoad(pid: string, since: string, uid: string) {
         // Retrieves all diffs made since `since` and replays them to reconstruct what the post looked like at `since`
         const [post, diffs] = await Promise.all([
             Posts.getPostSummaryByPids([pid], uid, { parse: false }),
@@ -177,32 +225,33 @@ export default function (Posts) {
         ]);
 
         // Replace content with re-constructed content from that point in time
+        
         post[0].content = diffs.reduce(applyPatch, validator.unescape(post[0].content));
 
-        const titleDiffs = diffs.filter(d => d.hasOwnProperty('title') && d.title);
+        const titleDiffs: titleDIFFS = diffs.filter(d => d.hasOwnProperty('title') && d.title);
         if (titleDiffs.length && post[0].topic) {
             post[0].topic.title = validator.unescape(String(titleDiffs[titleDiffs.length - 1].title));
         }
-        const tagDiffs = diffs.filter(d => d.hasOwnProperty('tags') && d.tags);
+        const tagDiffs: tagDIFFS = diffs.filter(d => d.hasOwnProperty('tags') && d.tags);
         if (tagDiffs.length && post[0].topic) {
-            const tags = tagDiffs[tagDiffs.length - 1].tags.split(',').map(tag => ({ value: tag }));
+            const tags = tagDiffs[tagDiffs.length - 1].tags.split(',').map((tag: any) => ({ value: tag }));
             post[0].topic.tags = await topics.getTagData(tags);
         }
 
         return post[0];
     }
 
-    function getValidatedTimestamp(timestamp) {
-        timestamp = parseInt(timestamp, 10);
+    function getValidatedTimestamp(timestamp: string) {
+        const timestamp2 = parseInt(timestamp, 10);
 
-        if (isNaN(timestamp)) {
+        if (isNaN(timestamp2)) {
             throw new Error('[[error:invalid-data]]');
         }
 
         return timestamp;
     }
 
-    function applyPatch(content, aDiff) {
+    function applyPatch(content: any, aDiff: aDIFF)  {
         if (aDiff && aDiff.patch) {
             const result = diff.applyPatch(content, aDiff.patch, {
                 fuzzFactor: 1,

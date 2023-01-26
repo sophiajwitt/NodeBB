@@ -42,11 +42,15 @@ function default_1(Posts) {
             // Pass those made after `since`, and create keys
             const keys = timestamps.filter(t => (parseInt(t, 10) || 0) > since)
                 .map(t => `diff:${pid}.${t}`);
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             return yield database_1.default.getObjects(keys);
         });
     };
     Diffs.list = function (pid) {
         return __awaiter(this, void 0, void 0, function* () {
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             return yield database_1.default.getListRange(`post:${pid}:diffs`, 0, -1);
         });
     };
@@ -70,7 +74,11 @@ function default_1(Posts) {
                 diffData.tags = topic.oldTags.map(tag => tag && tag.value).filter(Boolean).join(',');
             }
             yield Promise.all([
+                // The next line calls a function in a module that has not been updated to TS yet
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
                 database_1.default.listPrepend(`post:${pid}:diffs`, editTimestamp),
+                // The next line calls a function in a module that has not been updated to TS yet
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
                 database_1.default.setObject(`diff:${pid}.${editTimestamp}`, diffData),
             ]);
         });
@@ -87,16 +95,16 @@ function default_1(Posts) {
     };
     Diffs.restore = function (pid, since, uid, req) {
         return __awaiter(this, void 0, void 0, function* () {
-            since = getValidatedTimestamp(since);
+            const since2 = getValidatedTimestamp(since);
             const post = yield postDiffLoad(pid, since, uid);
             return yield Posts.edit({
                 uid: uid,
                 pid: pid,
                 content: post.content,
                 req: req,
-                timestamp: since,
+                timestamp: since2,
                 title: post.topic.title,
-                tags: post.topic.tags.map(tag => tag.value),
+                tags: post.topic.tags.map((tag) => tag.value),
             });
         });
     };
@@ -113,7 +121,11 @@ function default_1(Posts) {
             if (timestamp === String(post[0].timestamp)) {
                 // Deleting oldest diff, so history rewrite is not needed
                 return Promise.all([
+                    // The next line calls a function in a module that has not been updated to TS yet
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
                     database_1.default.delete(`diff:${pid}.${timestamps[lastTimestampIndex]}`),
+                    // The next line calls a function in a module that has not been updated to TS yet
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
                     database_1.default.listRemoveAll(`post:${pid}:diffs`, timestamps[lastTimestampIndex]),
                 ]);
             }
@@ -133,10 +145,16 @@ function default_1(Posts) {
                 const timestampToUpdate = newContentIndex + 1;
                 const newContent = newContentIndex < 0 ? postContent : versionContents[timestamps[newContentIndex]];
                 const patch = diff_1.default.createPatch('', newContent, versionContents[timestamps[i]]);
+                // The next line calls a function in a module that has not been updated to TS yet
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call   
                 yield database_1.default.setObject(`diff:${pid}.${timestamps[timestampToUpdate]}`, { patch });
             }
             return Promise.all([
+                // The next line calls a function in a module that has not been updated to TS yet
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
                 database_1.default.delete(`diff:${pid}.${timestamp}`),
+                // The next line calls a function in a module that has not been updated to TS yet
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
                 database_1.default.listRemoveAll(`post:${pid}:diffs`, timestamp),
             ]);
         });
@@ -156,15 +174,15 @@ function default_1(Posts) {
             }
             const tagDiffs = diffs.filter(d => d.hasOwnProperty('tags') && d.tags);
             if (tagDiffs.length && post[0].topic) {
-                const tags = tagDiffs[tagDiffs.length - 1].tags.split(',').map(tag => ({ value: tag }));
+                const tags = tagDiffs[tagDiffs.length - 1].tags.split(',').map((tag) => ({ value: tag }));
                 post[0].topic.tags = yield topics_1.default.getTagData(tags);
             }
             return post[0];
         });
     }
     function getValidatedTimestamp(timestamp) {
-        timestamp = parseInt(timestamp, 10);
-        if (isNaN(timestamp)) {
+        const timestamp2 = parseInt(timestamp, 10);
+        if (isNaN(timestamp2)) {
             throw new Error('[[error:invalid-data]]');
         }
         return timestamp;
