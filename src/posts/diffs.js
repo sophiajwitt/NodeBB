@@ -24,6 +24,8 @@ function default_1(Posts) {
     Posts.diffs = Diffs;
     Diffs.exists = function (pid) {
         return __awaiter(this, void 0, void 0, function* () {
+            // The next line calls a function in a module that has not been updated to TS yet
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             if (meta_1.default.config.enablePostHistory !== 1) {
                 return false;
             }
@@ -64,14 +66,17 @@ function default_1(Posts) {
             };
             if (oldContent !== newContent) {
                 // The next line calls a function in a module that has not been updated to TS yet
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-assignment */
                 diffData.patch = diff_1.default.createPatch('', newContent, oldContent);
             }
             if (topic.renamed) {
                 diffData.title = topic.oldTitle;
             }
             if (topic.tagsupdated && Array.isArray(topic.oldTags)) {
+                /* eslint-disable max-len */
                 diffData.tags = topic.oldTags.map(tag => tag && tag.value).filter(Boolean).join(',');
+                /* eslint-enable max-len */
             }
             yield Promise.all([
                 // The next line calls a function in a module that has not been updated to TS yet
@@ -83,6 +88,43 @@ function default_1(Posts) {
             ]);
         });
     };
+    function getValidatedTimestamp(timestamp) {
+        const timestamp2 = parseInt(timestamp, 10);
+        if (isNaN(timestamp2)) {
+            throw new Error('[[error:invalid-data]]');
+        }
+        return timestamp;
+    }
+    function applyPatch(content, aDiff) {
+        if (aDiff && aDiff.patch) {
+            const result = diff_1.default.applyPatch(content, aDiff.patch, {
+                fuzzFactor: 1,
+            });
+            return typeof result === 'string' ? result : content;
+        }
+        return content;
+    }
+    function postDiffLoad(pid, since, uid) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Retrieves all diffs made since `since` and replays them to reconstruct what the post looked like at `since`
+            const [post, diffs] = yield Promise.all([
+                Posts.getPostSummaryByPids([pid], uid, { parse: false }),
+                Posts.diffs.get(pid, since),
+            ]);
+            // Replace content with re-constructed content from that point in time
+            post[0].content = diffs.reduce(applyPatch, validator_1.default.unescape(post[0].content));
+            const titleDiffs = diffs.filter(d => d.hasOwnProperty('title') && d.title);
+            if (titleDiffs.length && post[0].topic) {
+                post[0].topic.title = validator_1.default.unescape(String(titleDiffs[titleDiffs.length - 1].title));
+            }
+            const tagDiffs = diffs.filter(d => d.hasOwnProperty('tags') && d.tags);
+            if (tagDiffs.length && post[0].topic) {
+                const tags = tagDiffs[tagDiffs.length - 1].tags.split(',').map((tag) => ({ value: tag }));
+                post[0].topic.tags = yield topics_1.default.getTagData(tags);
+            }
+            return post[0];
+        });
+    }
     Diffs.load = function (pid, since, uid) {
         return __awaiter(this, void 0, void 0, function* () {
             since = getValidatedTimestamp(since);
@@ -122,10 +164,12 @@ function default_1(Posts) {
                 // Deleting oldest diff, so history rewrite is not needed
                 return Promise.all([
                     // The next line calls a function in a module that has not been updated to TS yet
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+                    /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                       @typescript-eslint/no-unsafe-call */
                     database_1.default.delete(`diff:${pid}.${timestamps[lastTimestampIndex]}`),
                     // The next line calls a function in a module that has not been updated to TS yet
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+                    /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                       @typescript-eslint/no-unsafe-call */
                     database_1.default.listRemoveAll(`post:${pid}:diffs`, timestamps[lastTimestampIndex]),
                 ]);
             }
@@ -143,10 +187,14 @@ function default_1(Posts) {
                 // Recreate older diffs with skipping the deleted diff
                 const newContentIndex = i === timestampIndex ? i - 2 : i - 1;
                 const timestampToUpdate = newContentIndex + 1;
+                // The next line calls a function in a module that has not been updated to TS yet
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-call */
                 const newContent = newContentIndex < 0 ? postContent : versionContents[timestamps[newContentIndex]];
                 const patch = diff_1.default.createPatch('', newContent, versionContents[timestamps[i]]);
                 // The next line calls a function in a module that has not been updated to TS yet
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call   
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-assignment */
                 yield database_1.default.setObject(`diff:${pid}.${timestamps[timestampToUpdate]}`, { patch });
             }
             return Promise.all([
@@ -159,43 +207,5 @@ function default_1(Posts) {
             ]);
         });
     };
-    function postDiffLoad(pid, since, uid) {
-        return __awaiter(this, void 0, void 0, function* () {
-            // Retrieves all diffs made since `since` and replays them to reconstruct what the post looked like at `since`
-            const [post, diffs] = yield Promise.all([
-                Posts.getPostSummaryByPids([pid], uid, { parse: false }),
-                Posts.diffs.get(pid, since),
-            ]);
-            // Replace content with re-constructed content from that point in time
-            post[0].content = diffs.reduce(applyPatch, validator_1.default.unescape(post[0].content));
-            const titleDiffs = diffs.filter(d => d.hasOwnProperty('title') && d.title);
-            if (titleDiffs.length && post[0].topic) {
-                post[0].topic.title = validator_1.default.unescape(String(titleDiffs[titleDiffs.length - 1].title));
-            }
-            const tagDiffs = diffs.filter(d => d.hasOwnProperty('tags') && d.tags);
-            if (tagDiffs.length && post[0].topic) {
-                const tags = tagDiffs[tagDiffs.length - 1].tags.split(',').map((tag) => ({ value: tag }));
-                post[0].topic.tags = yield topics_1.default.getTagData(tags);
-            }
-            return post[0];
-        });
-    }
-    function getValidatedTimestamp(timestamp) {
-        const timestamp2 = parseInt(timestamp, 10);
-        if (isNaN(timestamp2)) {
-            throw new Error('[[error:invalid-data]]');
-        }
-        return timestamp;
-    }
-    function applyPatch(content, aDiff) {
-        if (aDiff && aDiff.patch) {
-            const result = diff_1.default.applyPatch(content, aDiff.patch, {
-                fuzzFactor: 1,
-            });
-            return typeof result === 'string' ? result : content;
-        }
-        return content;
-    }
 }
 exports.default = default_1;
-;
