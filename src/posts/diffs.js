@@ -75,6 +75,9 @@ function default_1(Posts) {
             }
             if (topic.tagsupdated && Array.isArray(topic.oldTags)) {
                 /* eslint-disable max-len */
+                // The next line calls a function in a module that has not been updated to TS yet
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-return */
                 diffData.tags = topic.oldTags.map(tag => tag && tag.value).filter(Boolean).join(',');
                 /* eslint-enable max-len */
             }
@@ -115,15 +118,36 @@ function default_1(Posts) {
                 Posts.diffs.get(pid, since),
             ]);
             // Replace content with re-constructed content from that point in time
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
             post[0].content = diffs.reduce(applyPatch, validator_1.default.unescape(post[0].content));
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
             const titleDiffs = diffs.filter(d => d.hasOwnProperty('title') && d.title);
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
             if (titleDiffs.length && post[0].topic) {
+                // The next line calls a function in a module that has not been updated to TS yet
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-call */
                 post[0].topic.title = validator_1.default.unescape(String(titleDiffs[titleDiffs.length - 1].title));
             }
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
             const tagDiffs = diffs.filter(d => d.hasOwnProperty('tags') && d.tags);
             if (tagDiffs.length && post[0].topic) {
+                // The next line calls a function in a module that has not been updated to TS yet
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-call */
                 const tags = tagDiffs[tagDiffs.length - 1].tags.split(',').map((tag) => ({ value: tag }));
-                post[0].topic.tags = yield topics_1.default.getTagData(tags);
+                // The next line calls a function in a module that has not been updated to TS yet
+                /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+                   @typescript-eslint/no-unsafe-call */
+                post[0].topic.tags = (yield topics_1.default.getTagData(tags));
             }
             return post[0];
         });
@@ -134,6 +158,9 @@ function default_1(Posts) {
             const post = yield postDiffLoad(pid, since, uid);
             post.content = String(post.content || '');
             const result = yield plugins_1.default.hooks.fire('filter:parse.post', { postData: post });
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
             result.postData.content = translator_1.default.escape(result.postData.content);
             return result.postData;
         });
@@ -188,6 +215,9 @@ function default_1(Posts) {
             if (timestampIndex === 0 || timestampIndex === -1) {
                 throw new Error('[[error:invalid-data]]');
             }
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
             const postContent = validator_1.default.unescape(post[0].content);
             const versionContents = {};
             for (let i = 0, content = postContent; i < timestamps.length; ++i) {
@@ -202,7 +232,9 @@ function default_1(Posts) {
                 // The next line calls a function in a module that has not been updated to TS yet
                 /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
                    @typescript-eslint/no-unsafe-call */
+                /* eslint-disable max-len */
                 const newContent = newContentIndex < 0 ? postContent : versionContents[timestamps[newContentIndex]];
+                /* eslint-enable max-len */
                 // The next line calls a function in a module that has not been updated to TS yet
                 /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
                    @typescript-eslint/no-unsafe-call */

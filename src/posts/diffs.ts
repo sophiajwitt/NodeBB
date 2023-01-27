@@ -16,7 +16,7 @@ interface DIFFS {
     list: (pid: string) => Promise<string[]>;
     save: (data: DATA) => Promise<void>;
     load: (pid: string, since: string, uid: string) => Promise<string>;
-    restore: (pid: string, since: string, uid: string, req: string) => Promise<void>;
+    restore: (pid: string, since: string, uid: string, req: string) => Promise<string>;
     delete: (pid: string, timestamp: string, uid: string) => Promise<string[]>;
     reduce: (applyPatch: applyfunction, validator: VALIDATOR) => Promise<number>;
     filter: (d: boolean) => Promise<titleDIFFS>;
@@ -62,11 +62,17 @@ interface aDIFF {
     patch?: number;
 }
 
+interface POST {
+    content: string
+    topic: TOPIC
+}
+
 interface POSTS {
     diffs: DIFFS;
     getPostSummaryByPids (pid: string[], uid: string, parse: object);
     edit (o: object);
 }
+
 
 
 
@@ -116,13 +122,16 @@ export default function (Posts: POSTS) {
             // The next line calls a function in a module that has not been updated to TS yet
             /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
                @typescript-eslint/no-unsafe-call */
-            diffData.patch = diff.createPatch('', newContent, oldContent);
+            diffData.patch = diff.createPatch('', newContent, oldContent) as string;
         }
         if (topic.renamed) {
             diffData.title = topic.oldTitle;
         }
         if (topic.tagsupdated && Array.isArray(topic.oldTags)) {
             /* eslint-disable max-len */
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-return */
             diffData.tags = topic.oldTags.map(tag => tag && tag.value).filter(Boolean).join(',');
             /* eslint-enable max-len */
         }
@@ -147,14 +156,14 @@ export default function (Posts: POSTS) {
         return timestamp;
     }
 
-    function applyPatch(content: any, aDiff: aDIFF) {
+    function applyPatch(content: string, aDiff: aDIFF) {
         if (aDiff && aDiff.patch) {
             // The next line calls a function in a module that has not been updated to TS yet
             /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
                @typescript-eslint/no-unsafe-call */
             const result = diff.applyPatch(content, aDiff.patch, {
                 fuzzFactor: 1,
-            });
+            }) as string;
             return typeof result === 'string' ? result : content;
         }
         return content;
@@ -169,30 +178,52 @@ export default function (Posts: POSTS) {
 
         // Replace content with re-constructed content from that point in time
 
-        post[0].content = diffs.reduce(applyPatch, validator.unescape(post[0].content));
-
+        // The next line calls a function in a module that has not been updated to TS yet
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+           @typescript-eslint/no-unsafe-call */
+        post[0].content = diffs.reduce(applyPatch, validator.unescape(post[0].content)) as string;
+        // The next line calls a function in a module that has not been updated to TS yet
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+           @typescript-eslint/no-unsafe-call */
         const titleDiffs: titleDIFFS = diffs.filter(d => d.hasOwnProperty('title') && d.title);
+        // The next line calls a function in a module that has not been updated to TS yet
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+           @typescript-eslint/no-unsafe-call */
         if (titleDiffs.length && post[0].topic) {
-            post[0].topic.title = validator.unescape(String(titleDiffs[titleDiffs.length - 1].title));
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
+            post[0].topic.title = validator.unescape(String(titleDiffs[titleDiffs.length - 1].title)) as string;
         }
+        // The next line calls a function in a module that has not been updated to TS yet
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+           @typescript-eslint/no-unsafe-call */
         const tagDiffs: tagDIFFS = diffs.filter(d => d.hasOwnProperty('tags') && d.tags);
         if (tagDiffs.length && post[0].topic) {
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
             const tags = tagDiffs[tagDiffs.length - 1].tags.split(',').map((tag: any) => ({ value: tag }));
-            post[0].topic.tags = await topics.getTagData(tags);
+            // The next line calls a function in a module that has not been updated to TS yet
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+               @typescript-eslint/no-unsafe-call */
+            post[0].topic.tags = await topics.getTagData(tags) as string;
         }
-
         return post[0];
     }
 
 
     Diffs.load = async function (pid, since, uid) {
         since = getValidatedTimestamp(since);
-        const post = await postDiffLoad(pid, since, uid);
+        const post: POST = await postDiffLoad(pid, since, uid);
         post.content = String(post.content || '');
 
         const result = await plugins.hooks.fire('filter:parse.post', { postData: post });
+        // The next line calls a function in a module that has not been updated to TS yet
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+           @typescript-eslint/no-unsafe-call */
         result.postData.content = translator.escape(result.postData.content);
-        return result.postData;
+        return result.postData as string;
     };
 
     Diffs.restore = async function (pid, since, uid, req) {
@@ -216,7 +247,7 @@ export default function (Posts: POSTS) {
             /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
                @typescript-eslint/no-unsafe-call */
             tags: post.topic.tags.map((tag: { value: any; }) => tag.value) as string,
-        });
+        }) as string;
     };
 
     Diffs.delete = async function (pid, timestamp, uid) {
@@ -248,10 +279,13 @@ export default function (Posts: POSTS) {
             throw new Error('[[error:invalid-data]]');
         }
 
+        // The next line calls a function in a module that has not been updated to TS yet
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
+           @typescript-eslint/no-unsafe-call */
         const postContent = validator.unescape(post[0].content) as string;
         const versionContents = {};
         for (let i = 0, content = postContent; i < timestamps.length; ++i) {
-            versionContents[timestamps[i]] = applyPatch(content, diffs[i]) as string[];
+            versionContents[timestamps[i]] = applyPatch(content, diffs[i]) as unknown as string[];
             content = versionContents[timestamps[i]] as string;
         }
 
@@ -263,7 +297,9 @@ export default function (Posts: POSTS) {
             // The next line calls a function in a module that has not been updated to TS yet
             /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
                @typescript-eslint/no-unsafe-call */
+            /* eslint-disable max-len */
             const newContent = newContentIndex < 0 ? postContent : versionContents[timestamps[newContentIndex]] as string;
+            /* eslint-enable max-len */
             // The next line calls a function in a module that has not been updated to TS yet
             /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,
                @typescript-eslint/no-unsafe-call */
