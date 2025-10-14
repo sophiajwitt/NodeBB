@@ -16,10 +16,11 @@ jobs:
               uses: porter-dev/setup-porter@v0.1.0
             - name: Deploy stack
               timeout-minutes: 30
-              run: exec porter apply -f porter.yaml
+              run: exec porter apply
               env:
                 PORTER_APP_NAME: nodebb
                 PORTER_CLUSTER: "1"
+                PORTER_DEPLOYMENT_TARGET_ID: 32beb866-2001-406f-ae08-2c4421cb587b
                 PORTER_HOST: https://witt.withporter.run
                 PORTER_PR_NUMBER: ${{ github.event.number }}
                 PORTER_PROJECT: "1"
