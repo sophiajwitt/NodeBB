@@ -1,0 +1,35 @@
+"on":
+    workflow_dispatch:
+        inputs:
+            build_settings_id:
+                description: Build settings id
+                required: true
+                type: string
+            commit_sha:
+                description: sha for which commit to build
+                required: true
+                type: string
+            registries:
+                description: Comma separated list of registry URIs
+                required: true
+                type: string
+name: Deploy to Porter
+jobs:
+    porter-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                ref: ${{ inputs.commit_sha }}
+            - name: Setup Porter
+              uses: porter-dev/setup-porter@v0.1.0
+            - name: Run porter build engine
+              timeout-minutes: 30
+              run: porter new build
+              env:
+                PORTER_BUILD_SETTINGS_ID: ${{ inputs.build_settings_id }}
+                PORTER_HOST: https://witt.withporter.run
+                PORTER_PROJECT: "1"
+                PORTER_REGISTRIES: ${{ inputs.registries }}
+                PORTER_TOKEN: ${{ secrets.PORTER_APP_1 }}
